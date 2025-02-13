@@ -1,10 +1,10 @@
 # Yet Another Standup Timer Tool (yast2)
 
-![Daily Standup Planner](doc/img/2025-02-13%2021_59_52-yast2.py%20-%20yast2%20-%20Visual%20Studio%20Code.png)
+![Daily Standup Planner](doc/img/2025-02-13%2023_24_24-README.md%20-%20yast2%20-%20Visual%20Studio%20Code.png)
 
 This project is a simple command-line application designed to facilitate Scrum daily standup meetings. It allows users to input the total meeting time, the number of participants, and checks if the meeting is ready to start. The application calculates the time allocated for each participant and features a countdown timer with a progress bar that visually indicates the time remaining.
 
-![Running the application](doc/img/2025-02-13%2023_24_24-README.md%20-%20yast2%20-%20Visual%20Studio%20Code.png)
+![Running the application](doc/img/2025-02-13%2022_00_18-yast2.py%20-%20yast2%20-%20Visual%20Studio%20Code.png)
 
 It is written in Python and uses the `curses` library for terminal display.
 
