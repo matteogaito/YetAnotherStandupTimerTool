@@ -25,13 +25,15 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
     meeting_start = time.time()
     participant_starts = [0] * num_participants
     participant_times = [participant_secs] * num_participants
+    participant_share = [participant_secs] * num_participants
     finished_states = [None] * num_participants
     current_participant = 0
+    total_participants = num_participants 
 
     # Start the first participant immediately
     participant_starts[current_participant] = meeting_start
 
-    while current_participant < num_participants:
+    while current_participant < total_participants:
         now = time.time()
         total_elapsed = now - meeting_start
         height, width = stdscr.getmaxyx()
@@ -39,7 +41,7 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
 
         stdscr.erase()
 
-        for idx in range(num_participants):
+        for idx in range(total_participants):
             participant_num = idx + 1  # Display number
             if idx < current_participant:
                 # Display finished state snapshot
@@ -48,14 +50,14 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
             elif idx == current_participant:
                 # Current participant
                 elapsed = now - participant_starts[idx]
-                remaining = participant_secs - elapsed
+                remaining = participant_share[idx] - elapsed
                 participant_times[idx] = remaining
 
                 # Decide current mode: countdown or overtime
                 if remaining >= 0:
                     # Countdown mode
                     disp_time = format_time(remaining)
-                    ratio = remaining / participant_secs
+                    ratio = remaining / participant_share[idx]
                     # Color: green normally, yellow if <= 25% time remains (i.e. >75% elapsed)
                     if ratio <= 0.25:
                         color = curses.color_pair(2)
@@ -72,13 +74,13 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
                     color = curses.color_pair(3)
                     # In overtime, progress bar fills from left to right.
                     # Ratio relative to allocated participant_secs (clamped to 1.0)
-                    ratio = min(overtime / participant_secs, 1.0)
+                    ratio = min(overtime / participant_share[idx], 1.0)
                     equals = int(round(ratio * bar_length))
                     dashes = bar_length - equals
                     bar = "-" * dashes + "✝" * equals  # fill from right side with skull emojis
             else:
                 # Future participants
-                remaining = participant_secs
+                remaining = participant_share[idx]
                 disp_time = format_time(remaining)
                 bar = "-" * bar_length
                 color = curses.color_pair(1)
@@ -89,23 +91,23 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
 
         total_line = f"Planned: {format_time(total_meeting_secs)}   Elapsed: {format_time(total_elapsed)}"
         color_total = curses.color_pair(3) if total_elapsed > total_meeting_secs else curses.color_pair(1)
-        stdscr.addstr(4 + num_participants, 2, total_line, color_total)
+        stdscr.addstr(4 + total_participants, 2, total_line, color_total)
 
 
-        stdscr.addstr(6 + num_participants, 2, "Press SPACE to switch to next participant.", curses.A_BOLD)
+        stdscr.addstr(6 + total_participants, 2, "Press SPACE to switch, A to add a participant.", curses.A_BOLD)
         stdscr.refresh()
 
         # Check for spacebar to move to next participant
         key = stdscr.getch()
         if key == ord(' '):
             # Freeze the current participant's state in finished_states
-            if current_participant < num_participants:
+            if current_participant < total_participants:
                 # Compute final snapshot for current participant
                 elapsed = now - participant_starts[current_participant]
-                remaining = participant_secs - elapsed
+                remaining = participant_share[idx] - elapsed
                 if remaining >= 0:
                     disp_time = format_time(remaining)
-                    ratio = remaining / participant_secs
+                    ratio = remaining / participant_share[idx]
                     color = curses.color_pair(2) if ratio <= 0.25 else curses.color_pair(1)
                     equals = int(round(ratio * bar_length))
                     dashes = bar_length - equals
@@ -114,7 +116,7 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
                     overtime = abs(remaining)
                     disp_time = format_time(overtime)
                     color = curses.color_pair(3)
-                    ratio = min(overtime / participant_secs, 1.0)
+                    ratio = min(overtime / participant_share[idx], 1.0)
                     equals = int(round(ratio * bar_length))
                     dashes = bar_length - equals
                     bar = "-" * dashes + "✝" * equals
@@ -124,13 +126,28 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
                     'color': color
                 }
                 current_participant += 1
-                if current_participant < num_participants:
+                if current_participant < total_participants:
                     participant_starts[current_participant] = now
+
+        elif key in (ord('a'), ord('A')):
+            # Add a participant.
+            total_participants += 1
+            participant_starts.append(now)
+            participant_times.append(participant_secs)  # placeholder; will be updated below
+            participant_share.append(participant_secs)  # placeholder; will be updated below
+            finished_states.append(None)
+            # Recalculate remaining time allocation for the active and future participants.
+            remaining_meeting = max(total_meeting_secs - total_elapsed, 0)
+            num_slots = total_participants - current_participant  # active one included
+            new_alloc = remaining_meeting / num_slots if num_slots > 0 else 0
+            for i in range(current_participant, total_participants):
+                participant_times[i] = new_alloc
+                participant_share[i] = new_alloc
 
         time.sleep(0.1)
 
     # End meeting screen message
-    stdscr.addstr(8 + num_participants , 2, "Meeting complete. Press x to exit.", curses.A_BOLD)
+    stdscr.addstr(8 + total_participants , 2, "Meeting complete. Press x to exit.", curses.A_BOLD)
     stdscr.refresh()
     stdscr.nodelay(False)
     while True:

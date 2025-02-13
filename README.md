@@ -4,20 +4,36 @@
 
 This project is a simple command-line application designed to facilitate Scrum daily standup meetings. It allows users to input the total meeting time, the number of participants, and checks if the meeting is ready to start. The application calculates the time allocated for each participant and features a countdown timer with a progress bar that visually indicates the time remaining.
 
-![Running the application](doc/img/2025-02-13%2022_00_18-yast2.py%20-%20yast2%20-%20Visual%20Studio%20Code.png)
+![Running the application](doc/img/2025-02-13%2023_24_24-README.md%20-%20yast2%20-%20Visual%20Studio%20Code.png)
 
 It is written in Python and uses the `curses` library for terminal display.
+
+Pressing SPACE will switch between participants.
+
+Pressing A will add late-coming participants on the fly, redistributing the remaining time among the current and new participants.
+
+The countdown is displayed in minutes and seconds, with the progress bar changing color based on the time remaining:
+
+- Green: More than 75% of the allocated time for the participant remaining.
+- Yellow: Less than 25% of the allocated time for the participant remaining.
+- Red: **overtime** - the bar turns red and will fill up from the right to the left. The timer will start to count up to show how much additional time the participant has used. If the bar is full (the participant has used more than double their allocated time), the bar will not change anymore but the timer will continue counting up.
+
+The originally allotted time is displayed beneath the progress bars along with the total elapsed time. This line will change to red if the total elapsed time exceeds the total meeting time.
 
 ## Features
 
 - User input for total meeting time and number of participants.
 - Calculation of time per participant.
 - Countdown timer with a progress bar that changes color based on time remaining.
-- Ability to switch between participants using the space key.
+- Overtime tracking for participants.
+- Switch between participants using the space key.
+- Add late-coming participants on the fly and redistribute remaining time.
+
 
 ## Installation
 
-To get started with the Scrum Daily Standup Planner, follow these steps:
+To get started with yet another standup timer tool,
+ follow these steps:
 
 1. Clone the repository:
    ```
