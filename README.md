@@ -21,7 +21,7 @@ To get started with the Scrum Daily Standup Planner, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone ...
+   git clone https://github.com/Agh42/yast2.git
    ```
 
 2. Install the required dependencies:
