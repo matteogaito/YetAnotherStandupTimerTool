@@ -1,6 +1,8 @@
 import curses
 import time
 
+BAR_WIDTH_PERCENT = 0.66
+
 def format_time(seconds):
     """Format seconds into MM:SS string."""
     seconds = int(round(seconds))
@@ -33,7 +35,7 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
         now = time.time()
         total_elapsed = now - meeting_start
         height, width = stdscr.getmaxyx()
-        bar_length = int(width * 0.75)  # dynamically calculate BAR_LENGTH as 80% of display width
+        bar_length = int(width * BAR_WIDTH_PERCENT)
 
         stdscr.erase()
 
