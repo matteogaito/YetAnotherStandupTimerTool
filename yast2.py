@@ -1,7 +1,8 @@
 import curses
 import time
+import sys
 
-BAR_WIDTH_PERCENT = 0.66
+BAR_WIDTH_PERCENT = 0.50
 
 def format_time(seconds):
     """Format seconds into MM:SS string."""
@@ -18,6 +19,7 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
     # Initialize color pairs: green, yellow, red
     curses.start_color()
     curses.use_default_colors()
+    curses.init_color(curses.COLOR_GREEN, 0, 1000, 0)  # Set green color explicitly
     curses.init_pair(1, curses.COLOR_GREEN, -1)
     curses.init_pair(2, curses.COLOR_YELLOW, -1)
     curses.init_pair(3, curses.COLOR_RED, -1)
@@ -30,6 +32,10 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
     current_participant = 0
     total_participants = num_participants 
 
+    # Calculate max participants based on available screen lines
+    height, width = stdscr.getmaxyx()
+    max_participants = height - 8  # 10 lines reserved for other messages
+
     # Start the first participant immediately
     participant_starts[current_participant] = meeting_start
 
@@ -40,6 +46,8 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
         bar_length = int(width * BAR_WIDTH_PERCENT)
 
         stdscr.erase()
+
+        stdscr.addstr(0, 2, f"Total Participants: {total_participants}", curses.A_BOLD)
 
         for idx in range(total_participants):
             participant_num = idx + 1  # Display number
@@ -86,7 +94,7 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
                 color = curses.color_pair(1)
 
             # Build participant line string
-            participant_line = f"Participant #{participant_num:>2d}  {disp_time}  [ {bar} ]"
+            participant_line = f"#{participant_num:>2d}  {disp_time}  [ {bar} ]"
             stdscr.addstr(2 + participant_num, 2, participant_line, color)
 
         total_line = f"Planned: {format_time(total_meeting_secs)}   Elapsed: {format_time(total_elapsed)}"
@@ -130,24 +138,25 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
                     participant_starts[current_participant] = now
 
         elif key in (ord('a'), ord('A')):
-            # Add a participant.
-            total_participants += 1
-            participant_starts.append(now)
-            participant_times.append(participant_secs)  # placeholder; will be updated below
-            participant_share.append(participant_secs)  # placeholder; will be updated below
-            finished_states.append(None)
-            # Recalculate remaining time allocation for the active and future participants.
-            remaining_meeting = max(total_meeting_secs - total_elapsed, 0)
-            num_slots = total_participants - current_participant  # active one included
-            new_alloc = remaining_meeting / num_slots if num_slots > 0 else 0
-            for i in range(current_participant, total_participants):
-                participant_times[i] = new_alloc
-                participant_share[i] = new_alloc
+            # Add a participant if it does not exceed max participants
+            if total_participants < max_participants:
+                total_participants += 1
+                participant_starts.append(now)
+                participant_times.append(participant_secs)  # placeholder; will be updated below
+                participant_share.append(participant_secs)  # placeholder; will be updated below
+                finished_states.append(None)
+                # Recalculate remaining time allocation for the active and future participants.
+                remaining_meeting = max(total_meeting_secs - total_elapsed, 0)
+                num_slots = total_participants - current_participant  # active one included
+                new_alloc = remaining_meeting / num_slots if num_slots > 0 else 0
+                for i in range(current_participant, total_participants):
+                    participant_times[i] = new_alloc
+                    participant_share[i] = new_alloc
 
         time.sleep(0.1)
 
     # End meeting screen message
-    stdscr.addstr(8 + total_participants , 2, "Meeting complete. Press x to exit.", curses.A_BOLD)
+    stdscr.addstr(1, 2, "Meeting complete. Press x to exit.", curses.A_BOLD)
     stdscr.refresh()
     stdscr.nodelay(False)
     while True:
@@ -156,27 +165,50 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
             break
 
 def main():
-    try:
-        total_time = float(input("Enter total meeting time (in minutes): "))
-    except ValueError:
-        print("Invalid input, please enter a number.")
-        return
+    args = sys.argv[1:]
+    if len(args) >= 2:
+        try:
+            total_time = float(args[0])
+            participants = int(args[1])
+            skip_confirmation = True
+        except ValueError:
+            print("Invalid command-line arguments. Falling back to interactive mode.")
+            print("Usage: python yast2.py <total_meeting_time_in_minutes> <number_of_participants>")
+            total_time = None
+            participants = None
+            skip_confirmation = False
+    else:
+        total_time = None
+        participants = None
+        skip_confirmation = False
 
-    try:
-        participants = int(input("Enter number of participants: "))
-    except ValueError:
-        print("Invalid input, please enter an integer.")
-        return
-
-    while True:
-        ready = input("Ready to start meeting? (yes/no): ").strip().lower()
-        if ready in ["yes", "y"]:
-            break
-        elif ready in ["no", "n"]:
-            print("Meeting aborted.")
+    if total_time is None:
+        try:
+            print("Usage: python yast2.py <total_meeting_time_in_minutes> <number_of_participants>")
+            print("Falling back to interactive mode.")
+            total_time = float(input("Enter total meeting time (in minutes): "))
+        except ValueError:
+            print("Invalid input, please enter a number.")
             return
-        else:
-            print("Invalid input, please enter 'yes' or 'no'.")
+
+    if participants is None:
+        try:
+            participants = int(input("Enter number of participants: "))
+        except ValueError:
+            print("Invalid input, please enter an integer.")
+            return
+
+    if not skip_confirmation:
+        while True:
+            ready = input("Ready to start meeting? (yes/no): ").strip().lower()
+            if ready in ["yes", "y"]:
+                break
+            elif ready in ["no", "n"]:
+                print("Meeting aborted.")
+                return
+            else:
+                print("Invalid input, please enter 'yes' or 'no'.")
+
 
     total_meeting_seconds = total_time * 60
     participant_seconds = total_meeting_seconds / participants
