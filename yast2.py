@@ -34,7 +34,7 @@ def run_meeting(stdscr, total_meeting_secs, participant_secs, num_participants):
 
     # Calculate max participants based on available screen lines
     height, width = stdscr.getmaxyx()
-    max_participants = height - 8  # 10 lines reserved for other messages
+    max_participants = height - 8  # 8 lines reserved for other messages
 
     # Start the first participant immediately
     participant_starts[current_participant] = meeting_start
