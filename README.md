@@ -45,6 +45,8 @@ To get started with yet another standup timer tool,
    pip install -r requirements.txt
    ```
 
+   NOTE: This is only required on windows (to get ncurses support). On Linux you do not to install anything. You can simply run the application.
+
 ## Usage
 
 To run the application, execute the following command in your terminal:
